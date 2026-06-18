@@ -1,0 +1,247 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String            @id @default(uuid())
+  email         String            @unique
+  name          String?
+  avatarUrl     String?
+  role          String            @default("MEMBER") // ENUM: OWNER, ADMIN, MEMBER, SIGNER
+  plan          String            @default("FREE")   // ENUM: FREE, PRO, TEAM, ENTERPRISE
+  stripeCustId  String?           @unique
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  documents     Document[]        @relation("UserDocuments")
+  sharedDocs    SharedDocument[]
+  signatures    SavedSignature[]
+  activities    ActivityLog[]
+  workspaces    WorkspaceMember[]
+  workflows     Workflow[]
+}
+
+model Workspace {
+  id            String            @id @default(uuid())
+  name          String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  members       WorkspaceMember[]
+  documents     Document[]
+}
+
+model WorkspaceMember {
+  id            String      @id @default(uuid())
+  workspaceId   String
+  userId        String
+  role          String      @default("MEMBER") // ENUM: OWNER, ADMIN, MEMBER
+  workspace     Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id            String            @id @default(uuid())
+  title         String
+  fileUrl       String
+  fileSize      Int
+  pageCount     Int?
+  isStarred     Boolean           @default(false)
+  ownerId       String
+  workspaceId   String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  owner         User              @relation("UserDocuments", fields: [ownerId], references: [id], onDelete: Cascade)
+  workspace     Workspace?        @relation(fields: [workspaceId], references: [id])
+  collaborators SharedDocument[]
+  annotations   Annotation[]
+  versions      DocumentVersion[]
+  qrAnalytics   QrIntelligence[]
+  signatures    DocSignature[]
+  chunks        DocumentChunk[]
+  graphNodes    GraphNode[]
+  contractAnalysis ContractAnalysis?
+}
+
+model SharedDocument {
+  id            String      @id @default(uuid())
+  documentId    String
+  userId        String
+  canEdit       Boolean     @default(false)
+  document      Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DocumentVersion {
+  id            String      @id @default(uuid())
+  documentId    String
+  versionNumber Int
+  fileUrl       String
+  changeSummary String?
+  createdById   String
+  createdAt     DateTime    @default(now())
+  document      Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model Annotation {
+  id            String      @id @default(uuid())
+  documentId    String
+  pageIndex     Int
+  type          String      // "highlight" | "comment" | "drawing" | "shape" | "text"
+  data          String      // JSON string: Coordinates, color, content
+  authorId      String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  document      Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model SavedSignature {
+  id            String      @id @default(uuid())
+  userId        String
+  type          String      // "draw" | "upload" | "font"
+  signatureData String      // PNG Data URI
+  isDefault     Boolean     @default(false)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DocSignature {
+  id            String      @id @default(uuid())
+  documentId    String
+  signerEmail   String
+  status        String      // "PENDING" | "SIGNED" | "DECLINED"
+  signedAt      DateTime?
+  signatureData String?     // PNG base64
+  token         String      @unique
+  document      Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model QrIntelligence {
+  id            String      @id @default(uuid())
+  documentId    String
+  qrToken       String      @unique
+  pageIndex     Int?
+  redirectUrl   String
+  scanCount     Int         @default(0)
+  scans         QrScan[]
+  document      Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model QrScan {
+  id               String          @id @default(uuid())
+  qrIntelligenceId String
+  scannedAt        DateTime        @default(now())
+  device           String?
+  location         String?
+  country          String?
+  qrIntelligence   QrIntelligence  @relation(fields: [qrIntelligenceId], references: [id], onDelete: Cascade)
+}
+
+model DocumentChunk {
+  id            String      @id @default(uuid())
+  documentId    String
+  pageIndex     Int
+  content       String
+  createdAt     DateTime    @default(now())
+  document      Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model GraphNode {
+  id            String      @id @default(uuid())
+  documentId    String
+  label         String
+  type          String      // "Entity", "Topic", "Concept"
+  metadata      String?     // JSON string
+  document      Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  edgesFrom     GraphEdge[] @relation("EdgeSource")
+  edgesTo       GraphEdge[] @relation("EdgeTarget")
+}
+
+model GraphEdge {
+  id            String      @id @default(uuid())
+  sourceId      String
+  targetId      String
+  relation      String
+  weight        Float       @default(1.0)
+  source        GraphNode   @relation("EdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target        GraphNode   @relation("EdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+}
+
+model Workflow {
+  id            String            @id @default(uuid())
+  name          String
+  triggerType   String            // "UPLOAD" | "SIGN" | "CRON"
+  triggerConfig String?           // JSON string
+  isEnabled     Boolean           @default(true)
+  ownerId       String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  user          User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  actions       WorkflowAction[]
+  runs          WorkflowRun[]
+}
+
+model WorkflowAction {
+  id            String      @id @default(uuid())
+  workflowId    String
+  actionType    String      // "OCR" | "EXTRACT_DATA" | "GEN_QR" | "NOTIFY"
+  actionConfig  String      // JSON string
+  order         Int
+  workflow      Workflow    @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+model WorkflowRun {
+  id            String      @id @default(uuid())
+  workflowId    String
+  status        String      // "SUCCESS" | "FAILED" | "PENDING"
+  startedAt     DateTime    @default(now())
+  endedAt       DateTime?
+  logs          String?
+  workflow      Workflow    @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id            String      @id @default(uuid())
+  userId        String
+  action        String
+  details       String?
+  timestamp     DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ContractAnalysis {
+  id                 String         @id @default(uuid())
+  documentId         String         @unique
+  contractType       String?        // NDA, SaaS, Employment, etc.
+  parties            String?        // JSON string
+  dates              String?        // JSON string
+  analysisStatus     String         @default("PENDING") // ENUM: PENDING, PROCESSING, COMPLETED, FAILED
+  progressPercentage Int            @default(0)
+  errorMessage       String?
+  startedAt          DateTime       @default(now())
+  completedAt        DateTime?
+  document           Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  clauses            Clause[]
+  executiveSummary   String?        // JSON string
+}
+
+model Clause {
+  id                 String             @id @default(uuid())
+  contractAnalysisId String
+  type               String             // Termination, Liability, etc.
+  title              String?
+  text               String
+  page               Int
+  confidence         Float
+  riskScore          Int?
+  riskSeverity       String?            // Low, Medium, High, Critical
+  businessImpact     String?
+  recommendation     String?
+  proposedRewrite    String?
+  rewriteExplanation String?
+  acceptedRewrite    String?
+  rewriteStatus      String?            // ENUM: SUGGESTED, ACCEPTED, REJECTED
+  contractAnalysis   ContractAnalysis   @relation(fields: [contractAnalysisId], references: [id], onDelete: Cascade)
+}
