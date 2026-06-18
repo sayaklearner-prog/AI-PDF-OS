@@ -1,0 +1,230 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    
+    --primary: #4f46e5; /* Indigo */
+    --primary-foreground: #ffffff;
+    
+    --secondary: #f1f5f9;
+    --secondary-foreground: #0f172a;
+    
+    --muted: #64748b;
+    --muted-foreground: #94a3b8;
+    
+    --accent: #6366f1; /* Vibrant Indigo */
+    --accent-glow: rgba(99, 102, 241, 0.15);
+    --accent-foreground: #ffffff;
+    
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+
+    --border: #e2e8f0;
+    --input: #e2e8f0;
+    --ring: #6366f1;
+    
+    --radius: 14px;
+  }
+
+  .dark {
+    --background: #0F172A; /* Deep Obsidian Space */
+    --foreground: #f9fafb;
+    
+    --card: rgba(15, 23, 42, 0.6); /* Sleek Glass Card */
+    --card-foreground: #f9fafb;
+    
+    --primary: #7C3AED; /* Purple */
+    --primary-foreground: #ffffff;
+    
+    --secondary: #1E293B;
+    --secondary-foreground: #f9fafb;
+    
+    --muted: #9ca3af;
+    --muted-foreground: #64748B;
+    
+    --accent: #6366F1; /* Indigo */
+    --accent-glow: rgba(99, 102, 241, 0.4);
+    --accent-foreground: #ffffff;
+    
+    --destructive: #EF4444;
+    --destructive-foreground: #ffffff;
+    
+    --success: #10B981;
+    --success-foreground: #ffffff;
+    
+    --info: #06B6D4;
+    --info-foreground: #ffffff;
+
+    --border: rgba(255, 255, 255, 0.08);
+    --input: rgba(255, 255, 255, 0.08);
+    --ring: #7C3AED;
+  }
+}
+
+@theme {
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --animate-blob: blob 7s infinite;
+  --animate-scan: scan 2s linear infinite;
+  --animate-gradient-x: gradient-x 15s ease infinite;
+
+  @keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+  @keyframes scan {
+    0% { top: 0; opacity: 0; }
+    50% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+  @keyframes gradient-x {
+    0% { background-position: 0% 50%; background-size: 200% 200%; }
+    50% { background-position: 100% 50%; background-size: 200% 200%; }
+    100% { background-position: 0% 50%; background-size: 200% 200%; }
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px; /* Larger body font per request */
+  overflow-x: hidden;
+  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.04) 0px, transparent 50%);
+}
+
+.dark body {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.15) 0px, transparent 60%),
+    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(6, 182, 212, 0.1) 0px, transparent 50%);
+}
+
+/* Glassmorphism Refined Classes */
+.glass {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(25px) saturate(200%);
+  -webkit-backdrop-filter: blur(25px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.dark .glass {
+  background: rgba(11, 15, 25, 0.55);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.03);
+}
+
+.dark .glass-card {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+}
+
+/* Hover effects & animations */
+.hover-glow {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px var(--accent-glow);
+  border-color: var(--accent);
+}
+
+/* Code layout styling */
+code, pre {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.15);
+  border-radius: 99px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.25);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Custom PDF Viewer Wrapper */
+.canvas-container {
+  box-shadow: 0 15px 40px -15px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.04);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid var(--border);
+}
+
+.dark .canvas-container {
+  box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(255, 255, 255, 0.06);
+}
+
+/* Vibrancy badges */
+.badge-vibrant {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 99px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+/* Animation keyframes */
+@keyframes neon-glow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(99, 102, 241, 0.4)); }
+  50% { filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.8)); }
+}
+
+.animate-glow {
+  animation: neon-glow 2s infinite;
+}
