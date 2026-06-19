@@ -40,9 +40,25 @@ export default function LeftSidebar() {
           qrCodeDataUrl: data.qrCodeDataUrl,
           redirectUrl: data.redirectUrl
         });
+        if (typeof window !== 'undefined' && (window as any).pendo) {
+          (window as any).pendo.track("document_published_to_qr", {
+            documentId: currentDocument?.id,
+            documentTitle: currentDocument?.title,
+            qrToken: data.token,
+            redirectUrl: data.redirectUrl,
+            success: true,
+          });
+        }
       }
     } catch (error) {
       console.error("Failed to publish document to QR", error);
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track("document_published_to_qr", {
+          documentId: currentDocument?.id,
+          documentTitle: currentDocument?.title,
+          success: false,
+        });
+      }
     } finally {
       setIsGenerating(false);
     }

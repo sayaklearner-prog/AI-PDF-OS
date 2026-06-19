@@ -50,10 +50,23 @@ export default function ChatSidebar() {
 
         if (ingestRes.ok) {
           console.log(`Document text successfully indexed on backend for doc: ${currentDocument.id}`);
+          if (typeof window !== 'undefined' && (window as any).pendo) {
+            (window as any).pendo.track("ai_document_ingested", {
+              documentId: currentDocument.id,
+              pageCount: pagesText.length,
+              success: true,
+            });
+          }
           setIngestedDocId(currentDocument.id);
         }
       } catch (err) {
         console.error("Text ingestion failed", err);
+        if (typeof window !== 'undefined' && (window as any).pendo) {
+          (window as any).pendo.track("ai_document_ingested", {
+            documentId: currentDocument.id,
+            success: false,
+          });
+        }
       }
     };
 
@@ -77,7 +90,18 @@ export default function ChatSidebar() {
 
     // Command Intent Parsing
     const queryLower = userQuery.toLowerCase();
-    
+
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      const queryType = queryLower.includes('go to page') ? 'navigation' :
+        (queryLower.includes('signature') && (queryLower.includes('add') || queryLower.includes('paste'))) ? 'signature_action' :
+        (queryLower.includes('highlight risk') || queryLower.includes('show risk')) ? 'highlight_action' : 'chat';
+      (window as any).pendo.track("ai_chat_query_sent", {
+        documentId: currentDocument?.id,
+        query: userQuery.substring(0, 200),
+        queryType,
+      });
+    }
+
     // NAVIGATION COMMAND
     if (queryLower.includes('go to page')) {
       const match = queryLower.match(/page (\d+)/);
@@ -144,9 +168,25 @@ export default function ChatSidebar() {
         references: data.citations
       };
       addAiMessage(aiMsg);
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track("ai_chat_response_received", {
+          documentId: currentDocument?.id,
+          query: userQuery.substring(0, 200),
+          responseLength: data.reply?.length || 0,
+          citationsCount: data.citations?.length || 0,
+          success: true,
+        });
+      }
       setAiGenerating(false);
     } catch (error) {
       console.warn("Backend AI query failed", error);
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track("ai_chat_response_received", {
+          documentId: currentDocument?.id,
+          query: userQuery.substring(0, 200),
+          success: false,
+        });
+      }
       
       const errorMsg: Message = {
         id: `msg-${Date.now() + 1}`,
@@ -200,6 +240,12 @@ export default function ChatSidebar() {
       documentViewer.setCurrentPage(payload.page);
     }
 
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track("ai_action_approved", {
+        documentId: currentDocument?.id,
+        actionType: msg.actionPreview?.type,
+      });
+    }
     updateAiMessage(msg.id, { actionApplied: true });
   };
 
@@ -377,7 +423,15 @@ export default function ChatSidebar() {
             </div>
 
             <button
-              onClick={() => alert("Simulated podcast generation complete! Voice TTS audio synthesis starting...")}
+              onClick={() => {
+                if (typeof window !== 'undefined' && (window as any).pendo) {
+                  (window as any).pendo.track("ai_podcast_generated", {
+                    documentId: currentDocument?.id,
+                    documentTitle: currentDocument?.title,
+                  });
+                }
+                alert("Simulated podcast generation complete! Voice TTS audio synthesis starting...");
+              }}
               className="mt-2 w-full py-1.5 rounded bg-accent text-accent-foreground font-semibold hover:opacity-95"
             >
               Generate AI Podcast (Audio)
