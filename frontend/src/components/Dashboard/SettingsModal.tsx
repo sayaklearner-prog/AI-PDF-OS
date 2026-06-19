@@ -20,6 +20,18 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [role, setRole] = useState(userProfile.role);
 
   const handleSave = () => {
+    const updatedFields: string[] = [];
+    if (name !== userProfile.name) updatedFields.push('name');
+    if (email !== userProfile.email) updatedFields.push('email');
+    if (apiKey !== userProfile.apiKey) updatedFields.push('apiKey');
+    if (role !== userProfile.role) updatedFields.push('role');
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track("settings_updated", {
+        updatedFields: updatedFields.join(','),
+        role,
+        hasApiKey: !!apiKey,
+      });
+    }
     setUserProfile({ name, email, apiKey, role });
     alert("Workspace preferences updated successfully.");
     onClose();

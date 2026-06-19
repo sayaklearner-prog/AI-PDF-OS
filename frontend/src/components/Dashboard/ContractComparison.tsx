@@ -37,9 +37,26 @@ export const ContractComparison = () => {
         targetDocumentId: targetDocId
       });
       setResult(res.data);
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track("contract_comparison_executed", {
+          baseDocumentId: baseDocId,
+          targetDocumentId: targetDocId,
+          overallSimilarityScore: res.data.overallSimilarityScore,
+          deviationCount: res.data.deviations?.length || 0,
+          missingClausesCount: res.data.missingClauses?.length || 0,
+          success: true,
+        });
+      }
     } catch (e: any) {
       console.error(e);
       setError(e.response?.data?.message || 'Failed to compare contracts. Ensure both have been analyzed first.');
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track("contract_comparison_executed", {
+          baseDocumentId: baseDocId,
+          targetDocumentId: targetDocId,
+          success: false,
+        });
+      }
     } finally {
       setLoading(false);
     }

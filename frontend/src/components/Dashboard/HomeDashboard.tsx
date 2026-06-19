@@ -25,11 +25,26 @@ export default function HomeDashboard() {
   const handleDeleteDoc = (e: React.MouseEvent, docId: string) => {
     e.stopPropagation();
     if (confirm("Delete document?")) {
-      setDocumentsList(documentsList.filter((doc) => doc.id !== docId));
+      const doc = documentsList.find((d) => d.id === docId);
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track("document_deleted", {
+          documentId: docId,
+          documentTitle: doc?.title,
+          documentPageCount: doc?.pageCount,
+          documentFileSize: doc?.fileSize,
+        });
+      }
+      setDocumentsList(documentsList.filter((d) => d.id !== docId));
     }
   };
 
   const triggerBackendAnalysis = async (docId: string, file: File) => {
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track("contract_analysis_triggered", {
+        documentId: docId,
+        fileName: file.name,
+      });
+    }
     try {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -46,7 +61,7 @@ export default function HomeDashboard() {
     }
   };
 
-  const simulateWorkflowAutomation = (file: File) => {
+  const simulateWorkflowAutomation = (file: File, uploadMethod: string = 'file_picker') => {
     setUploadingFile(file.name);
     setRunSteps([{ name: 'Uploading to Deep Intelligence Engine...', status: 'running' as const }]);
 
@@ -74,6 +89,15 @@ export default function HomeDashboard() {
         
         triggerBackendAnalysis(docId, file);
         setDocumentsList([newDoc, ...documentsList]);
+        if (typeof window !== 'undefined' && (window as any).pendo) {
+          (window as any).pendo.track("document_uploaded", {
+            documentId: docId,
+            fileName: file.name,
+            fileSizeMB: sizeMB,
+            pageCount: actualPageCount,
+            uploadMethod,
+          });
+        }
         setUploadingFile(null);
         setRunSteps([]);
         handleSelectDoc(newDoc, 'ai');
@@ -136,7 +160,7 @@ export default function HomeDashboard() {
               e.preventDefault();
               setIsDragging(false);
               const file = e.dataTransfer.files?.[0];
-              if (file && file.name.endsWith('.pdf')) simulateWorkflowAutomation(file);
+              if (file && file.name.endsWith('.pdf')) simulateWorkflowAutomation(file, 'drag_drop');
             }}
           >
             {uploadingFile ? (

@@ -64,6 +64,11 @@ export default function SignaturePad({ onClose }: SignaturePadProps) {
     if (!canvas) return;
     const dataUrl = canvas.toDataURL();
     addSignature({ dataUrl, type: 'draw' });
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track("signature_created", {
+        signatureType: 'draw',
+      });
+    }
     alert("Signature captured from drawing canvas.");
     onClose();
   };
@@ -89,6 +94,12 @@ export default function SignaturePad({ onClose }: SignaturePadProps) {
     
     const dataUrl = canvas.toDataURL();
     addSignature({ dataUrl, type: 'type' });
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track("signature_created", {
+        signatureType: 'type',
+        selectedFont,
+      });
+    }
     alert("Calligraphy signature generated and saved.");
     onClose();
   };
@@ -210,6 +221,12 @@ export default function SignaturePad({ onClose }: SignaturePadProps) {
                     const reader = new FileReader();
                     reader.onload = (event) => {
                       addSignature({ dataUrl: event.target?.result as string, type: 'upload' });
+                      if (typeof window !== 'undefined' && (window as any).pendo) {
+                        (window as any).pendo.track("signature_uploaded", {
+                          fileType: file.type,
+                          fileName: file.name,
+                        });
+                      }
                       alert("Uploaded signature image.");
                       onClose();
                     };

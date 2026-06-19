@@ -42,8 +42,21 @@ export const ExecutiveSummary = ({ documentId }: { documentId: string }) => {
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`Contract_Summary_${contractType || 'Document'}.pdf`);
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track("executive_summary_exported", {
+          documentId,
+          contractType: contractType || 'Unknown',
+          success: true,
+        });
+      }
     } catch (err) {
       console.error('Failed to export PDF', err);
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track("executive_summary_exported", {
+          documentId,
+          success: false,
+        });
+      }
       alert('Failed to generate PDF report.');
     } finally {
       setExporting(false);

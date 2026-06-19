@@ -74,6 +74,19 @@ export default function WatermarkModal() {
   };
 
   const handleOk = () => {
+    if (typeof window !== 'undefined' && (window as any).pendo) {
+      (window as any).pendo.track("watermark_applied", {
+        watermarkText: watermarkConfig.text,
+        fontFamily: watermarkConfig.fontFamily,
+        fontSize: watermarkConfig.fontSize,
+        color: watermarkConfig.color,
+        opacity: watermarkConfig.opacity,
+        rotation: watermarkConfig.rotation,
+        scale: watermarkConfig.scale,
+        location: watermarkConfig.location,
+        documentId: currentDocument?.id,
+      });
+    }
     // Close modal, saving current settings
     setWatermarkConfig({ showModal: false });
   };

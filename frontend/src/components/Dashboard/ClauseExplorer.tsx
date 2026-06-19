@@ -35,8 +35,19 @@ export const ClauseExplorer = ({ documentId }: { documentId: string }) => {
   }, [documentId]);
 
   const handleRewriteAction = async (clauseId: string, action: 'accept' | 'reject') => {
+    const clause = clauses.find(c => c.id === clauseId);
     try {
       await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/ai/contracts/clauses/${clauseId}/${action}-rewrite`);
+      if (typeof window !== 'undefined' && (window as any).pendo) {
+        (window as any).pendo.track("clause_rewrite_actioned", {
+          clauseId,
+          action,
+          documentId,
+          clauseTitle: clause?.title,
+          riskSeverity: clause?.riskSeverity,
+          riskScore: clause?.riskScore,
+        });
+      }
       // Optimistic update
       setClauses(clauses.map(c => 
         c.id === clauseId 

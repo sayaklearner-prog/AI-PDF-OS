@@ -54,6 +54,14 @@ export default function RootPage() {
             })
           });
           if (res.ok) {
+            if (typeof window !== 'undefined' && (window as any).pendo) {
+              (window as any).pendo.track("qr_code_scan_registered", {
+                qrToken,
+                device: 'Web Browser',
+                location: 'San Francisco',
+                country: 'US',
+              });
+            }
             alert(`🔗 Dynamic QR Code Scan Registered!\n\nToken: ${qrToken}\nRedirected to local workspace dashboard successfully.`);
           }
         } catch (err) {
