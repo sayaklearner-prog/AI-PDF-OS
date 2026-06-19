@@ -21,6 +21,14 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
   const handleSave = () => {
     setUserProfile({ name, email, apiKey, role });
+    pendo.identify({
+      visitor: {
+        id: email,
+        email: email,
+        full_name: name,
+        role: role
+      }
+    });
     alert("Workspace preferences updated successfully.");
     onClose();
   };
