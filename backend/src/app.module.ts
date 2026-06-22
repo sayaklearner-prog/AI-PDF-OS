@@ -12,6 +12,7 @@ import { AiController } from './ai/ai.controller';
 import { QrService } from './qr/qr.service';
 import { QrController } from './qr/qr.controller';
 import { CollaborationGateway } from './collaboration/collaboration.gateway';
+import { PendoController } from './pendo/pendo.controller';
 
 // Contract Intelligence AI Pipeline
 import { ContractPipelineService } from './ai/orchestrator/contract-pipeline.service';
@@ -35,6 +36,7 @@ import { NegotiationAgent } from './ai/agents/negotiation.agent';
     DocumentsController,
     AiController,
     QrController,
+    PendoController,
   ],
   providers: [
     AppService,
