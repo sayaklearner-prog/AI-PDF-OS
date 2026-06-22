@@ -1,9 +1,13 @@
 import { Controller, Post, Get, Body, Param, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { AiService } from './ai.service';
 import { ContractPipelineService } from './orchestrator/contract-pipeline.service';
 import { VectorService } from './services/vector.service';
 import { ComparisonService } from './services/comparison.service';
 import { PrismaService } from '../prisma.service';
+
+declare var pendo: { trackAgent: (eventType: string, metadata: object) => void };
+
 enum AnalysisStatus {
   PENDING = 'PENDING',
   PROCESSING = 'PROCESSING',
@@ -78,12 +82,31 @@ export class AiController {
     @Param('id') documentId: string,
     @Body('query') query: string
   ) {
+    const conversationId = documentId;
+
+    pendo.trackAgent("prompt", {
+      agentId: "5MAmB615fLf8YVF6Qc2K4d6JTh4",
+      conversationId,
+      messageId: randomUUID(),
+      content: query,
+    });
+
     // 1. Semantic Search for relevant clauses
     const relevantClauses = await this.vectorService.searchClauses(documentId, query, 5);
 
     if (relevantClauses.length === 0) {
       // Fallback to old full-text search if no clauses exist
-      return this.aiService.queryDocument(documentId, query);
+      const result = await this.aiService.queryDocument(documentId, query);
+
+      pendo.trackAgent("agent_response", {
+        agentId: "5MAmB615fLf8YVF6Qc2K4d6JTh4",
+        conversationId,
+        messageId: randomUUID(),
+        content: result.reply,
+        modelUsed: "gpt-4o",
+      });
+
+      return result;
     }
 
     // 2. Build RAG Context
@@ -108,6 +131,14 @@ export class AiController {
       text: c.title || c.type || c.text.substring(0, 50)
     }));
 
+    pendo.trackAgent("agent_response", {
+      agentId: "5MAmB615fLf8YVF6Qc2K4d6JTh4",
+      conversationId,
+      messageId: randomUUID(),
+      content: reply,
+      modelUsed: "gpt-4o",
+    });
+
     return { reply, citations };
   }
   @Get('contracts/:id/clauses')
@@ -127,20 +158,42 @@ export class AiController {
 
   @Post('contracts/clauses/:clauseId/accept-rewrite')
   async acceptRewrite(@Param('clauseId') clauseId: string) {
-    const clause = await this.prisma.clause.findUnique({ where: { id: clauseId } });
+    const clause = await this.prisma.clause.findUnique({
+      where: { id: clauseId },
+      include: { contractAnalysis: true },
+    });
     if (!clause) throw new NotFoundException('Clause not found');
+
+    pendo.trackAgent("user_reaction", {
+      agentId: "5MAmB615fLf8YVF6Qc2K4d6JTh4",
+      conversationId: clause.contractAnalysis.documentId,
+      messageId: clauseId,
+      content: "positive",
+    });
 
     return this.prisma.clause.update({
       where: { id: clauseId },
       data: {
         rewriteStatus: 'ACCEPTED',
-        // In a real system, this might trigger a PDF editor API to replace text on canvas
       }
     });
   }
 
   @Post('contracts/clauses/:clauseId/reject-rewrite')
   async rejectRewrite(@Param('clauseId') clauseId: string) {
+    const clause = await this.prisma.clause.findUnique({
+      where: { id: clauseId },
+      include: { contractAnalysis: true },
+    });
+    if (!clause) throw new NotFoundException('Clause not found');
+
+    pendo.trackAgent("user_reaction", {
+      agentId: "5MAmB615fLf8YVF6Qc2K4d6JTh4",
+      conversationId: clause.contractAnalysis.documentId,
+      messageId: clauseId,
+      content: "negative",
+    });
+
     return this.prisma.clause.update({
       where: { id: clauseId },
       data: { rewriteStatus: 'REJECTED' }
@@ -155,7 +208,24 @@ export class AiController {
   // Legacy endpoints to prevent breaking existing UI temporarily
   @Post('query')
   async queryDocument(@Body('documentId') documentId: string, @Body('query') query: string) {
-    return this.aiService.queryDocument(documentId, query);
+    pendo.trackAgent("prompt", {
+      agentId: "5MAmB615fLf8YVF6Qc2K4d6JTh4",
+      conversationId: documentId,
+      messageId: randomUUID(),
+      content: query,
+    });
+
+    const result = await this.aiService.queryDocument(documentId, query);
+
+    pendo.trackAgent("agent_response", {
+      agentId: "5MAmB615fLf8YVF6Qc2K4d6JTh4",
+      conversationId: documentId,
+      messageId: randomUUID(),
+      content: result.reply,
+      modelUsed: "gpt-4o",
+    });
+
+    return result;
   }
 
   @Post('ingest')

@@ -2,12 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useEditorStore, Message } from '../../store/editorStore';
 import { Send, Sparkles, BookOpen, RotateCcw, AlertTriangle, FileText, CheckCircle, Volume2 } from 'lucide-react';
 
+const PENDO_AGENT_ID = 'O8aL-u1INXPjmICL6f_MCTWJYDs';
+
 export default function ChatSidebar() {
   const { aiMessages, addAiMessage, isAiGenerating, setAiGenerating, currentDocument } = useEditorStore();
   const [input, setInput] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<'chat' | 'graph' | 'audio'>('chat');
   const [ingestedDocId, setIngestedDocId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const conversationIdRef = useRef(crypto.randomUUID());
+  const isSuggestedPromptRef = useRef(false);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -64,6 +68,8 @@ export default function ChatSidebar() {
     if (!input.trim() || isAiGenerating) return;
     
     const userQuery = input;
+    const suggestedPrompt = isSuggestedPromptRef.current;
+    isSuggestedPromptRef.current = false;
     // User Message
     const userMsg: Message = {
       id: `msg-${Date.now()}`,
@@ -72,6 +78,17 @@ export default function ChatSidebar() {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     addAiMessage(userMsg);
+
+    if (typeof pendo !== 'undefined') {
+      pendo.trackAgent("prompt", {
+        agentId: PENDO_AGENT_ID,
+        conversationId: conversationIdRef.current,
+        messageId: userMsg.id,
+        content: userQuery,
+        suggestedPrompt,
+      });
+    }
+
     setInput('');
     setAiGenerating(true);
 
@@ -86,38 +103,65 @@ export default function ChatSidebar() {
       if (webViewerInstance) {
         webViewerInstance.Core.documentViewer.setCurrentPage(pageNum);
       }
-      addAiMessage({
+      const navMsg: Message = {
         id: `msg-ai-${Date.now()}`,
         sender: 'ai',
         text: `I've navigated the document to Page ${pageNum}.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
+      };
+      addAiMessage(navMsg);
+      if (typeof pendo !== 'undefined') {
+        pendo.trackAgent("agent_response", {
+          agentId: PENDO_AGENT_ID,
+          conversationId: conversationIdRef.current,
+          messageId: navMsg.id,
+          content: navMsg.text,
+        });
+      }
       setAiGenerating(false);
       return;
     }
 
     // SIGNATURE ACTION
     if (queryLower.includes('signature') && (queryLower.includes('add') || queryLower.includes('paste'))) {
-      addAiMessage({
+      const sigMsg: Message = {
         id: `msg-ai-${Date.now()}`,
         sender: 'ai',
         text: 'I can add your signature to the document. Please review the preview and approve.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         actionPreview: { type: 'signature', payload: { x: 100, y: 100 } }
-      });
+      };
+      addAiMessage(sigMsg);
+      if (typeof pendo !== 'undefined') {
+        pendo.trackAgent("agent_response", {
+          agentId: PENDO_AGENT_ID,
+          conversationId: conversationIdRef.current,
+          messageId: sigMsg.id,
+          content: sigMsg.text,
+        });
+      }
       setAiGenerating(false);
       return;
     }
 
     // HIGHLIGHT ACTION
     if (queryLower.includes('highlight risk') || queryLower.includes('show risk')) {
-      addAiMessage({
+      const highlightMsg: Message = {
         id: `msg-ai-${Date.now()}`,
         sender: 'ai',
         text: 'I found a Critical Risk (Auto-Renewal Clause) on Page 1. Shall I highlight it in Red?',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         actionPreview: { type: 'highlight', payload: { page: 1, rect: { x: 50, y: 500, w: 400, h: 50 }, riskLevel: 'Critical' } }
-      });
+      };
+      addAiMessage(highlightMsg);
+      if (typeof pendo !== 'undefined') {
+        pendo.trackAgent("agent_response", {
+          agentId: PENDO_AGENT_ID,
+          conversationId: conversationIdRef.current,
+          messageId: highlightMsg.id,
+          content: highlightMsg.text,
+        });
+      }
       setAiGenerating(false);
       return;
     }
@@ -144,6 +188,14 @@ export default function ChatSidebar() {
         references: data.citations
       };
       addAiMessage(aiMsg);
+      if (typeof pendo !== 'undefined') {
+        pendo.trackAgent("agent_response", {
+          agentId: PENDO_AGENT_ID,
+          conversationId: conversationIdRef.current,
+          messageId: aiMsg.id,
+          content: aiMsg.text,
+        });
+      }
       setAiGenerating(false);
     } catch (error) {
       console.warn("Backend AI query failed", error);
@@ -204,6 +256,7 @@ export default function ChatSidebar() {
   };
 
   const runQuickAction = (action: string) => {
+    isSuggestedPromptRef.current = true;
     setInput(action);
     setTimeout(() => {
       // Trigger send automatically
